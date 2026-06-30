@@ -1,1 +1,12 @@
-
+.env
+config/service-account.json
+config/firebase-service-account.json
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.log
+.vscode/
+.idea/
+node_modules/
+dist/
