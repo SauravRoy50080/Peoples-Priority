@@ -1,18 +1,34 @@
-import google.generativeai as genai
-from processing.prompt_templates import CLASSIFICATION_PROMPT
 import json
-from processing.response_validator import ComplaintResponse
+
+import google.generativeai as genai
 from pydantic import ValidationError
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from config.settings import (
-    GEMINI_API_KEY,
-    GEMINI_MODEL,
-    GEMINI_TEMPERATURE,
-    GEMINI_TOP_P,
-    GEMINI_TOP_K,
-    GEMINI_MAX_OUTPUT_TOKENS,
-)
+try:
+    from ml_pipeline.processing.prompt_templates import CLASSIFICATION_PROMPT
+    from ml_pipeline.processing.response_validator import ComplaintResponse
+except ImportError:
+    from processing.prompt_templates import CLASSIFICATION_PROMPT
+    from processing.response_validator import ComplaintResponse
+
+try:
+    from config.settings import (
+        GEMINI_API_KEY,
+        GEMINI_MODEL,
+        GEMINI_TEMPERATURE,
+        GEMINI_TOP_P,
+        GEMINI_TOP_K,
+        GEMINI_MAX_OUTPUT_TOKENS,
+    )
+except ImportError:
+    from ml_pipeline.config.settings import (
+        GEMINI_API_KEY,
+        GEMINI_MODEL,
+        GEMINI_TEMPERATURE,
+        GEMINI_TOP_P,
+        GEMINI_TOP_K,
+        GEMINI_MAX_OUTPUT_TOKENS,
+    )
 
 genai.configure(api_key=GEMINI_API_KEY)
 
