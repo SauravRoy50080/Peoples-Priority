@@ -6,34 +6,51 @@ export default function EvidenceCard({ clusterId, onClose }) {
   if (!clusterId) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto"
+        className="bg-paper rounded-lg p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto border border-ink/10"
         onClick={(e) => e.stopPropagation()}
       >
         {isLoading || !data ? (
-          <div className="text-center py-10 text-gray-400">Loading evidence...</div>
+          <div className="text-center py-14 text-slate-soft">Pulling up the evidence…</div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">{data.label}</h2>
-              <span className="text-lg font-bold text-blue-600">{data.final_score}/100</span>
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="font-display text-xl font-semibold text-ink">{data.label}</h2>
+              <span className="shrink-0 font-mono text-sm font-medium text-terracotta bg-terracotta/10 px-2.5 py-1 rounded-full">
+                {data.final_score}/100
+              </span>
             </div>
 
-            <p className="text-sm text-gray-700 mb-4">{data.justification}</p>
+            <p className="text-sm text-slate-soft mb-5">{data.justification}</p>
 
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-500 mb-2">Public Data Evidence</h3>
-              <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
-                {data.need_evidence.map((e, i) => <li key={i}>{e}</li>)}
+            <div className="mb-5">
+              <h3 className="text-[11px] uppercase tracking-wide text-slate-soft mb-2">
+                Public data evidence
+              </h3>
+              <ul className="text-sm text-ink space-y-1.5">
+                {data.need_evidence.map((e, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-marigold-dark">—</span>
+                    <span>{e}</span>
+                  </li>
+                ))}
               </ul>
             </div>
 
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-500 mb-2">Citizen Quotes</h3>
+            <div className="mb-5">
+              <h3 className="text-[11px] uppercase tracking-wide text-slate-soft mb-2">
+                Citizen quotes
+              </h3>
               <div className="space-y-2">
                 {data.sample_quotes.map((q, i) => (
-                  <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 italic">
+                  <div
+                    key={i}
+                    className="bg-white border-l-2 border-marigold/50 rounded-r-lg p-3 text-sm text-slate-soft italic"
+                  >
                     "{q}"
                   </div>
                 ))}
@@ -42,7 +59,10 @@ export default function EvidenceCard({ clusterId, onClose }) {
 
             <div className="flex gap-2 flex-wrap">
               {data.channels_used.map((c) => (
-                <span key={c} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                <span
+                  key={c}
+                  className="text-xs bg-ink text-paper px-2.5 py-1 rounded-full capitalize"
+                >
                   {c}
                 </span>
               ))}
@@ -52,7 +72,7 @@ export default function EvidenceCard({ clusterId, onClose }) {
 
         <button
           onClick={onClose}
-          className="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm"
+          className="mt-6 w-full bg-ink hover:bg-ink-light text-paper py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
           Close
         </button>

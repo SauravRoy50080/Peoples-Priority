@@ -17,20 +17,19 @@ export default function Submit() {
   const [photos, setPhotos] = useState([]);
   const [photoPreviews, setPhotoPreviews] = useState([]);
   const [location, setLocation] = useState(null);
-  const [locationStatus, setLocationStatus] = useState('idle'); // idle | requesting | granted | denied
+  const [locationStatus, setLocationStatus] = useState('idle');
 
-  // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
-  const [status, setStatus] = useState('idle'); // idle | submitting | success | error
+  const [status, setStatus] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
   const handlePhotoChange = (e) => {
-    const files = Array.from(e.target.files || []).slice(0, 5); // cap at 5 photos
+    const files = Array.from(e.target.files || []).slice(0, 5);
     setPhotos(files);
     setPhotoPreviews(files.map((f) => URL.createObjectURL(f)));
   };
@@ -118,18 +117,32 @@ export default function Submit() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white border rounded-xl p-8 max-w-md w-full text-center">
-          <div className="text-4xl mb-3">✅</div>
-          <h1 className="text-lg font-bold text-gray-900 mb-2">Thank you</h1>
-          <p className="text-sm text-gray-600 mb-6">
-            Your submission has been received and will be reviewed along with others from your area.
+      <div className="min-h-screen bg-paper flex items-center justify-center p-6">
+        <div className="bg-white border border-ink/10 rounded-lg p-8 max-w-md w-full text-center">
+          <div className="w-12 h-12 rounded-full bg-moss/10 text-moss flex items-center justify-center text-2xl mx-auto mb-4">
+            ✓
+          </div>
+          <h1 className="font-display text-xl font-semibold text-ink mb-2">
+            Your voice has been logged
+          </h1>
+          <p className="text-sm text-slate-soft mb-6">
+            This submission joins others from your area and will be reviewed
+            during the next development planning cycle.
           </p>
           <button
-            onClick={() => navigate('/submit')}
-            className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
+            onClick={() => {
+              setText('');
+              setPhotos([]);
+              setPhotoPreviews([]);
+              setAudioBlob(null);
+              setAudioUrl(null);
+              setLocation(null);
+              setLocationStatus('idle');
+              setStatus('idle');
+            }}
+            className="bg-ink hover:bg-ink-light text-paper px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
           >
-            Submit another
+            Log another issue
           </button>
         </div>
       </div>
@@ -137,29 +150,36 @@ export default function Submit() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-paper p-6">
       <div className="max-w-lg mx-auto">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Share a development need</h1>
-          <p className="text-sm text-gray-500">
-            Text, a photo, or a voice note — whatever's easiest for you.
+          <span className="font-mono text-xs uppercase tracking-[0.2em] text-marigold-dark">
+            New entry
+          </span>
+          <h1 className="font-display text-3xl font-semibold text-ink mt-1">
+            What needs your MP's attention?
+          </h1>
+          <p className="text-sm text-slate-soft mt-2">
+            Text, a photo, or a voice note — whatever's easiest. Every submission
+            is read and counted toward what gets prioritized.
           </p>
         </header>
 
-        <form onSubmit={handleSubmit} className="bg-white border rounded-xl p-5 space-y-5">
-          {/* Language */}
+        <form onSubmit={handleSubmit} className="bg-white border border-ink/10 rounded-lg p-5 space-y-6">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-2">Language</label>
+            <label className="block text-[11px] uppercase tracking-wide text-slate-soft mb-2">
+              Language
+            </label>
             <div className="flex gap-2 flex-wrap">
               {LANGUAGES.map((l) => (
                 <button
                   type="button"
                   key={l.code}
                   onClick={() => setLanguage(l.code)}
-                  className={`px-3 py-1.5 rounded-full text-sm border ${
+                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                     language === l.code
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-gray-50 text-gray-600 border-gray-200'
+                      ? 'bg-ink text-paper border-ink'
+                      : 'bg-paper text-slate-soft border-ink/15 hover:border-ink/30'
                   }`}
                 >
                   {l.label}
@@ -168,9 +188,8 @@ export default function Submit() {
             </div>
           </div>
 
-          {/* Text */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-2">
+            <label className="block text-[11px] uppercase tracking-wide text-slate-soft mb-2">
               Describe the issue
             </label>
             <textarea
@@ -178,24 +197,25 @@ export default function Submit() {
               onChange={(e) => setText(e.target.value)}
               rows={4}
               placeholder="e.g. The road near the school has had a large pothole for 2 months..."
-              className="w-full border rounded-lg p-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-ink/15 rounded-lg p-3 text-sm text-ink bg-paper focus:outline-none focus:ring-2 focus:ring-marigold/50 focus:border-marigold/50"
             />
           </div>
 
-          {/* Voice note */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-2">Voice note</label>
+            <label className="block text-[11px] uppercase tracking-wide text-slate-soft mb-2">
+              Voice note
+            </label>
             {!audioUrl ? (
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`w-full py-3 rounded-lg text-sm font-medium border ${
+                className={`w-full py-3 rounded-lg text-sm font-medium border transition-colors ${
                   isRecording
-                    ? 'bg-red-50 text-red-600 border-red-300 animate-pulse'
-                    : 'bg-gray-50 text-gray-700 border-gray-200'
+                    ? 'bg-terracotta/10 text-terracotta border-terracotta/40 animate-pulse'
+                    : 'bg-paper text-ink border-ink/15 hover:border-ink/30'
                 }`}
               >
-                {isRecording ? '⏺ Recording... tap to stop' : '🎤 Tap to record a voice note'}
+                {isRecording ? '⏺ Recording… tap to stop' : '🎤 Tap to record a voice note'}
               </button>
             ) : (
               <div className="flex items-center gap-3">
@@ -203,7 +223,7 @@ export default function Submit() {
                 <button
                   type="button"
                   onClick={discardRecording}
-                  className="text-xs text-red-500 hover:underline"
+                  className="text-xs text-terracotta hover:underline shrink-0"
                 >
                   Remove
                 </button>
@@ -211,9 +231,8 @@ export default function Submit() {
             )}
           </div>
 
-          {/* Photos */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-2">
+            <label className="block text-[11px] uppercase tracking-wide text-slate-soft mb-2">
               Photos (up to 5)
             </label>
             <input
@@ -222,17 +241,17 @@ export default function Submit() {
               capture="environment"
               multiple
               onChange={handlePhotoChange}
-              className="text-sm text-gray-600"
+              className="text-sm text-slate-soft file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:bg-paper-dim file:text-ink file:text-sm hover:file:bg-ink/10 file:transition-colors"
             />
             {photoPreviews.length > 0 && (
               <div className="flex gap-2 mt-3 flex-wrap">
                 {photoPreviews.map((src, i) => (
                   <div key={i} className="relative">
-                    <img src={src} alt="" className="w-16 h-16 object-cover rounded-lg border" />
+                    <img src={src} alt="" className="w-16 h-16 object-cover rounded-lg border border-ink/10" />
                     <button
                       type="button"
                       onClick={() => removePhoto(i)}
-                      className="absolute -top-2 -right-2 bg-gray-900 text-white rounded-full w-5 h-5 text-xs leading-5"
+                      className="absolute -top-2 -right-2 bg-ink text-paper rounded-full w-5 h-5 text-xs leading-5"
                     >
                       ×
                     </button>
@@ -242,35 +261,36 @@ export default function Submit() {
             )}
           </div>
 
-          {/* Location */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-2">Location</label>
+            <label className="block text-[11px] uppercase tracking-wide text-slate-soft mb-2">
+              Location
+            </label>
             {locationStatus === 'granted' ? (
-              <p className="text-sm text-green-600">📍 Location attached</p>
+              <p className="text-sm text-moss">📍 Location attached</p>
             ) : (
               <button
                 type="button"
                 onClick={requestLocation}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-marigold-dark hover:underline"
               >
-                {locationStatus === 'requesting' ? 'Getting location...' : '📍 Attach my location'}
+                {locationStatus === 'requesting' ? 'Getting location…' : '📍 Attach my location'}
               </button>
             )}
             {locationStatus === 'denied' && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-soft mt-1">
                 Location unavailable — you can still submit without it.
               </p>
             )}
           </div>
 
-          {errorMsg && <p className="text-sm text-red-500">{errorMsg}</p>}
+          {errorMsg && <p className="text-sm text-terracotta">{errorMsg}</p>}
 
           <button
             type="submit"
             disabled={status === 'submitting'}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-marigold hover:bg-marigold-dark text-ink py-3 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            {status === 'submitting' ? 'Submitting...' : 'Submit'}
+            {status === 'submitting' ? 'Submitting…' : 'Submit to my MP'}
           </button>
         </form>
       </div>
