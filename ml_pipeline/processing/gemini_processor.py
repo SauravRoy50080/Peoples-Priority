@@ -2,8 +2,8 @@ import json
 
 import google.generativeai as genai
 from pydantic import ValidationError
-
-from ml_pipeline.config.settings import (
+from tenacity import retry, stop_after_attempt, wait_exponential
+from config.settings import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
     GEMINI_TEMPERATURE,
@@ -38,6 +38,11 @@ def _get_model():
     return _model
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True
+)
 def classify_complaint(complaint: str) -> dict:
     """
     Classify a citizen complaint using Gemini.
@@ -46,8 +51,7 @@ def classify_complaint(complaint: str) -> dict:
         complaint: Complaint text.
 
     Returns:
-        Parsed and validated complaint as a Python dictionary.
-    """
+        Parsed and validated complaint as a Python dictionary.    """
 
     prompt = CLASSIFICATION_PROMPT + f"\n{complaint}"
 
@@ -55,7 +59,14 @@ def classify_complaint(complaint: str) -> dict:
         model = _get_model()
         response = model.generate_content(prompt)
 
-        data = json.loads(response.text)
+        text = response.text.strip()
+
+        if text.startswith("```"):
+            text = text.replace("```json", "")
+            text = text.replace("```", "")
+            text = text.strip()
+
+        data = json.loads(text)
 
         # Validate the response using Pydantic in the response_validator
         validated = ComplaintResponse(**data)
