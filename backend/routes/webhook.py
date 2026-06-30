@@ -1,6 +1,6 @@
 """
 backend/routes/webhook.py
-POST /webhook/wa, POST /webhook/sms — Twilio inbound message receivers.
+POST /webhook/wa, POST /webhook/sms â€” Twilio inbound message receivers.
 Both funnel into the same process_submission() used by /submit.
 """
 
@@ -46,7 +46,7 @@ async def sms_webhook(
     Body: str = Form(...),
     From: str = Form(...),
 ):
-    """Twilio SMS webhook — same shape as WhatsApp."""
+    """Twilio SMS webhook â€” same shape as WhatsApp."""
     log.info("SMS received", from_number=From)
 
     try:
