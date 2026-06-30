@@ -21,17 +21,27 @@ GENERAL RULES
 MULTIPLE ISSUE HANDLING
 
 1. Always return exactly ONE category.
+2.Never choose the first issue simply because it appears first. Evaluate all issues before selecting the category.
+3. If multiple issues belong to different categories:
 
-2. Determine the primary issue using the following order:
+Step 1: Identify ALL issues.
+
+Step 2: Determine whether one issue is clearly the primary complaint.
+
+Step 3: If no primary issue is explicitly emphasized, choose the category with the highest priority according to the predefined order.
+
+Never select the first issue simply because it appears first in the sentence.
+
+4. Determine the primary issue using the following order:
    a. Direct impact on public safety or essential services.
    b. The emphasis given in the complaint.
 
-3. If multiple issues belong to the same category:
+5. If multiple issues belong to the same category:
    - Return that category only once.
    - Select the most significant issue as "issue_type".
    - The summary should describe the primary issue and may briefly mention secondary issues.
 
-4. If the primary issue cannot be determined, use the following category priority:
+6. If the primary issue cannot be determined, use the following category priority:
 
 Healthcare
 Water
