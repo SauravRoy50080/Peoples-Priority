@@ -6,7 +6,8 @@ Adapted to consume ComplaintResponse schema from ml_pipeline/processing/response
 """
 
 from typing import List, Dict, Any
-from config.settings import WEIGHT_DEMAND, WEIGHT_NEED, WEIGHT_URGENCY, WEIGHT_FEASIBILITY
+
+from ml_pipeline.config.settings import WEIGHT_DEMAND, WEIGHT_NEED, WEIGHT_URGENCY, WEIGHT_FEASIBILITY
 
 
 # ─── Urgency enum → numeric score ───────────────────────────────────────────

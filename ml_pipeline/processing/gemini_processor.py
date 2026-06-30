@@ -1,9 +1,9 @@
-import google.generativeai as genai
-from processing.prompt_templates import CLASSIFICATION_PROMPT
 import json
-from processing.response_validator import ComplaintResponse
+
+import google.generativeai as genai
 from pydantic import ValidationError
-from config.settings import (
+
+from ml_pipeline.config.settings import (
     GEMINI_API_KEY,
     GEMINI_MODEL,
     GEMINI_TEMPERATURE,
@@ -11,21 +11,31 @@ from config.settings import (
     GEMINI_TOP_K,
     GEMINI_MAX_OUTPUT_TOKENS,
 )
+from ml_pipeline.processing.prompt_templates import CLASSIFICATION_PROMPT
+from ml_pipeline.processing.response_validator import ComplaintResponse
 
-genai.configure(api_key=GEMINI_API_KEY)
+_model = None
 
-generation_config = genai.types.GenerationConfig(
-    temperature=GEMINI_TEMPERATURE,
-    top_p=GEMINI_TOP_P,
-    top_k=GEMINI_TOP_K,
-    max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS,
-)
 
-model = genai.GenerativeModel(
-    GEMINI_MODEL,
-    generation_config=generation_config,
-)
+def _get_model():
+    global _model
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured")
 
+    if _model is None:
+        genai.configure(api_key=GEMINI_API_KEY)
+        generation_config = genai.types.GenerationConfig(
+            temperature=GEMINI_TEMPERATURE,
+            top_p=GEMINI_TOP_P,
+            top_k=GEMINI_TOP_K,
+            max_output_tokens=GEMINI_MAX_OUTPUT_TOKENS,
+        )
+        _model = genai.GenerativeModel(
+            GEMINI_MODEL,
+            generation_config=generation_config,
+        )
+
+    return _model
 
 
 def classify_complaint(complaint: str) -> dict:
@@ -42,6 +52,7 @@ def classify_complaint(complaint: str) -> dict:
     prompt = CLASSIFICATION_PROMPT + f"\n{complaint}"
 
     try:
+        model = _get_model()
         response = model.generate_content(prompt)
 
         data = json.loads(response.text)
