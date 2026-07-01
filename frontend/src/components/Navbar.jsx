@@ -1,8 +1,16 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const isSubmit = pathname.startsWith('/submit');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <header className="bg-ink text-paper">
@@ -18,14 +26,16 @@ export default function Navbar() {
         </Link>
 
         <nav className="flex items-center gap-1 text-sm">
-          <Link
-            to="/"
-            className={`px-3 py-1.5 rounded-full transition-colors ${
-              !isSubmit ? 'bg-paper text-ink font-medium' : 'text-paper/70 hover:text-paper'
-            }`}
-          >
-            MP Dashboard
-          </Link>
+          {user && (
+            <Link
+              to="/dashboard"
+              className={`px-3 py-1.5 rounded-full transition-colors ${
+                !isSubmit ? 'bg-paper text-ink font-medium' : 'text-paper/70 hover:text-paper'
+              }`}
+            >
+              MP Dashboard
+            </Link>
+          )}
           <Link
             to="/submit"
             className={`px-3 py-1.5 rounded-full transition-colors ${
@@ -34,6 +44,14 @@ export default function Navbar() {
           >
             Raise an issue
           </Link>
+          {user && (
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 rounded-full text-paper/70 hover:text-paper transition-colors ml-1"
+            >
+              Sign out
+            </button>
+          )}
         </nav>
       </div>
     </header>
