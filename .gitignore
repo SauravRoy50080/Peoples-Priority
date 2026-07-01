@@ -1,4 +1,4 @@
-.env
+﻿.env
 config/service-account.json
 config/firebase-service-account.json
 __pycache__/

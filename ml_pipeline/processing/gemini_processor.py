@@ -1,16 +1,34 @@
-import google.generativeai as genai
-from processing.prompt_templates import CLASSIFICATION_PROMPT
 import json
-from processing.response_validator import ComplaintResponse
+
+import google.generativeai as genai
 from pydantic import ValidationError
-from config.settings import (
-    GEMINI_API_KEY,
-    GEMINI_MODEL,
-    GEMINI_TEMPERATURE,
-    GEMINI_TOP_P,
-    GEMINI_TOP_K,
-    GEMINI_MAX_OUTPUT_TOKENS,
-)
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+try:
+    from ml_pipeline.processing.prompt_templates import CLASSIFICATION_PROMPT
+    from ml_pipeline.processing.response_validator import ComplaintResponse
+except ImportError:
+    from processing.prompt_templates import CLASSIFICATION_PROMPT
+    from processing.response_validator import ComplaintResponse
+
+try:
+    from config.settings import (
+        GEMINI_API_KEY,
+        GEMINI_MODEL,
+        GEMINI_TEMPERATURE,
+        GEMINI_TOP_P,
+        GEMINI_TOP_K,
+        GEMINI_MAX_OUTPUT_TOKENS,
+    )
+except ImportError:
+    from ml_pipeline.config.settings import (
+        GEMINI_API_KEY,
+        GEMINI_MODEL,
+        GEMINI_TEMPERATURE,
+        GEMINI_TOP_P,
+        GEMINI_TOP_K,
+        GEMINI_MAX_OUTPUT_TOKENS,
+    )
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -26,37 +44,44 @@ model = genai.GenerativeModel(
     generation_config=generation_config,
 )
 
-
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+)
 
 def classify_complaint(complaint: str) -> dict:
     """
     Classify a citizen complaint using Gemini.
 
-    Arguments:
+    Args:
         complaint: Complaint text.
 
     Returns:
         Parsed and validated complaint as a Python dictionary.
     """
 
-    prompt = CLASSIFICATION_PROMPT + f"\n{complaint}"
+    prompt = f"{CLASSIFICATION_PROMPT}\n{complaint}"
 
     try:
         response = model.generate_content(prompt)
 
-        data = json.loads(response.text)
+        text = response.text.strip()
 
-        # Validate the response using Pydantic in the response_validator
+        data = json.loads(text)
+
         validated = ComplaintResponse(**data)
+        return validated.model_dump(mode="json")
 
-        # Convert the validated model back to a dictionary
-        return validated.model_dump()
+    except json.JSONDecodeError as e:
+        print("=" * 80)
+        print("Gemini returned invalid JSON")
+        print(response.text)
+        print("=" * 80)
+        raise ValueError("Gemini returned invalid JSON.") from e
 
-    except json.JSONDecodeError:
-        raise ValueError("Gemini returned invalid JSON.")
-    
     except ValidationError as e:
-        raise ValueError(f"Response validation failed: {e}") from e
+        raise ValueError(f"Response validation failed:\n{e}") from e
 
     except Exception as e:
         raise RuntimeError(f"Gemini API Error: {e}") from e
