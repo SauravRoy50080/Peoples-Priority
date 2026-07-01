@@ -10,3 +10,4 @@ venv/
 .idea/
 node_modules/
 dist/
+config/configuration.env
