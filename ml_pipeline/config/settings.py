@@ -5,7 +5,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 
 load_dotenv(BASE_DIR / "configuration.env")
+# Load .env from ml_pipeline/ (if present)
 load_dotenv(BASE_DIR.parent / ".env", override=False)
+# Also attempt to load the project root .env so values like GEMINI_API_KEY
+# defined at the repository root are available when running the backend.
+load_dotenv(BASE_DIR.parent.parent / ".env", override=False)
 load_dotenv(BASE_DIR.parent / "ml_pipeline" / "config" / "configuration.env", override=False)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
