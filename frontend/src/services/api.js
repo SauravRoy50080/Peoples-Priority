@@ -6,8 +6,11 @@ import {
   mockClusterDetail,
 } from './mockData';
 
+<<<<<<< HEAD
 // Set VITE_USE_MOCK=true in .env to develop the dashboard
 // independently of the backend (see backend/routes/dashboard.py).
+=======
+>>>>>>> Asmita
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 const api = axios.create({
@@ -15,8 +18,11 @@ const api = axios.create({
   timeout: 10000,
 });
 
+<<<<<<< HEAD
 // Small helper to fake network latency in mock mode so loading
 // states are actually visible during development.
+=======
+>>>>>>> Asmita
 const delay = (data, ms = 400) =>
   new Promise((resolve) => setTimeout(() => resolve(data), ms));
 
@@ -32,4 +38,28 @@ export const getClusterDetail = (id) =>
 export const getStats = () =>
   USE_MOCK ? delay(mockStats) : api.get('/stats').then((r) => r.data);
 
+<<<<<<< HEAD
+=======
+export const submitEntry = ({ text, language, lat, lng, photos, audio }) => {
+  if (USE_MOCK) {
+    console.log('[mock] submission:', { text, language, lat, lng, photos, audio });
+    return delay({ status: 'received', submission_id: 'mock-' + Date.now() }, 800);
+  }
+
+  const formData = new FormData();
+  if (text) formData.append('text', text);
+  if (language) formData.append('language', language);
+  if (lat != null) formData.append('lat', lat);
+  if (lng != null) formData.append('lng', lng);
+  (photos || []).forEach((file) => formData.append('photos', file));
+  if (audio) formData.append('audio', audio, 'voice-note.webm');
+
+  return api
+    .post('/submit', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((r) => r.data);
+};
+
+>>>>>>> Asmita
 export default api;
