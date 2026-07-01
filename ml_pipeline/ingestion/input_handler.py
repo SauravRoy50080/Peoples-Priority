@@ -1,88 +1,75 @@
 """
-backend/routes/submit.py
-POST /submit — citizen submits a complaint via text, voice, or photo.
-WhatsApp/SMS go through webhook.py instead, since those arrive as
-Twilio form-encoded callbacks, not direct API calls.
+Layer 1: Input Ingestion & Normalization
+Handles: voice, text, photo, WhatsApp/SMS → unified English text + metadata.
+Output feeds into pipeline_trigger.process_submission().
 """
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-import structlog
+import uuid
+from datetime import datetime
+from typing import Dict, Any
 
-from backend.services.pipeline_trigger import process_submission, ingest_and_process
-
-log = structlog.get_logger()
-router = APIRouter()
-
-
-class SubmitRequest(BaseModel):
-    input_type: str = "text"          # text | voice | photo
-    content: Optional[str] = None     # used when input_type == "text"
-    audio_data: Optional[str] = None  # used when input_type == "voice"
-                                       # (mock: plain text stand-in for audio bytes;
-                                       #  production: base64-encoded audio)
-    image_data: Optional[str] = None  # used when input_type == "photo"
-                                       # (mock: plain text stand-in for image bytes;
-                                       #  production: base64-encoded image)
-    ward: str = "Unknown"
-    citizen_id: Optional[str] = None
-    language: str = "en"
+TRANSLATION_MAP = {
+    "सड़क टूटी है": "The road is broken",
+    "पानी नहीं आ रहा": "Water is not coming",
+    "स्कूल की छत टूटी है": "School roof is broken",
+    "अस्पताल दूर है": "Hospital is far away",
+    "फसल खराब हो रही है": "Crops are getting damaged",
+}
 
 
-class SubmitResponse(BaseModel):
-    submission_id: str
-    category: str
-    urgency: str
-    summary: str
+class InputHandler:
+    def __init__(self, use_mock: bool = True):
+        self.use_mock = use_mock
 
+    async def normalize(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+        input_type = raw.get("type", "text")
 
-@router.post("/submit", response_model=SubmitResponse)
-async def submit_complaint(payload: SubmitRequest):
-    """
-    Accepts a citizen complaint in any channel (text/voice/photo), normalizes
-    it through Layer 1 if needed, classifies via Gemini (Layer 2), and stores
-    it (Layer 3). Returns the classification result.
-    """
-    try:
-        if payload.input_type == "text":
-            if not payload.content or not payload.content.strip():
-                raise HTTPException(status_code=400, detail="Complaint text cannot be empty")
-
-            record = process_submission(
-                raw_text=payload.content,
-                ward=payload.ward,
-                input_type="text",
-                citizen_id=payload.citizen_id,
-            )
-
-        elif payload.input_type in ("voice", "photo"):
-            raw = {
-                "type": payload.input_type,
-                "audio_data": payload.audio_data,
-                "image_data": payload.image_data,
-                "ward": payload.ward,
-                "citizen_id": payload.citizen_id,
-                "language": payload.language,
-            }
-            record = await ingest_and_process(raw)
-
+        if input_type == "voice":
+            transcribed = self._stt(raw.get("audio_data", ""))
+        elif input_type == "photo":
+            transcribed = self._vision_describe(raw.get("image_data", ""))
         else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported input_type '{payload.input_type}'. Use text, voice, or photo."
+            transcribed = raw.get("content", "")
+
+        english_text = self._translate(transcribed, raw.get("language", "en"))
+
+        return {
+            "submission_id": str(uuid.uuid4()),
+            "citizen_id": raw.get("citizen_id") or f"cit_{uuid.uuid4().hex[:8]}",
+            "input_type": input_type,
+            "raw_text": english_text,
+            "ward": raw.get("ward", "Unknown"),
+            "timestamp": raw.get("timestamp", datetime.utcnow().isoformat()),
+        }
+
+    def _stt(self, audio_data: str) -> str:
+        if not self.use_mock:
+            from google.cloud import speech
+            client = speech.SpeechClient()
+            audio = speech.RecognitionAudio(content=audio_data)
+            config = speech.RecognitionConfig(
+                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                language_code="hi-IN",
+                alternative_language_codes=["en-IN"],
             )
+            response = client.recognize(config=config, audio=audio)
+            return response.results[0].alternatives[0].transcript
+        return audio_data if audio_data else "Road near my house is broken since 3 months"
 
-    except ValueError as e:
-        log.error("Submission classification failed", error=str(e))
-        raise HTTPException(status_code=502, detail=f"Classification failed: {e}")
-    except RuntimeError as e:
-        log.error("Gemini API error", error=str(e))
-        raise HTTPException(status_code=503, detail=f"AI service unavailable: {e}")
+    def _vision_describe(self, image_data: str) -> str:
+        if not self.use_mock:
+            import google.generativeai as genai
+            model = genai.GenerativeModel("gemini-1.5-pro")
+            response = model.generate_content(
+                [image_data, "Describe the public infrastructure issue in this image"]
+            )
+            return response.text
+        return image_data if image_data else "Image shows a broken road with large potholes"
 
-    return SubmitResponse(
-        submission_id=record["submission_id"],
-        category=record["category"],
-        urgency=record["urgency"],
-        summary=record["summary"],
-    )
+    def _translate(self, text: str, language: str) -> str:
+        if not self.use_mock:
+            from google.cloud import translate_v2 as translate
+            client = translate.Client()
+            result = client.translate(text, target_language="en")
+            return result["translatedText"]
+        return TRANSLATION_MAP.get(text, text)
