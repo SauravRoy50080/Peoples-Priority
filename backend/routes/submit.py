@@ -1,10 +1,11 @@
 """
 backend/routes/submit.py
-POST /submit — citizen submits a complaint (text for now; voice/photo handled
-by ingestion layer before reaching here).
+POST /submit — citizen submits a complaint via multipart/form-data
+(matching the React frontend's submitEntry() in api.js).
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Form, UploadFile, File, HTTPException
+from typing import List, Optional
 from pydantic import BaseModel
 import structlog
 
@@ -12,13 +13,6 @@ from backend.services.pipeline_trigger import process_submission
 
 log = structlog.get_logger()
 router = APIRouter()
-
-
-class SubmitRequest(BaseModel):
-    text: str
-    ward: str = "Unknown"
-    input_type: str = "text"          # text | voice | photo | whatsapp | sms
-    citizen_id: str | None = None
 
 
 class SubmitResponse(BaseModel):
@@ -29,27 +23,35 @@ class SubmitResponse(BaseModel):
 
 
 @router.post("/submit", response_model=SubmitResponse)
-async def submit_complaint(payload: SubmitRequest):
+async def submit_complaint(
+    text: Optional[str] = Form(None),
+    language: Optional[str] = Form("en"),
+    lat: Optional[float] = Form(None),
+    lng: Optional[float] = Form(None),
+    photos: Optional[List[UploadFile]] = File(None),
+    audio: Optional[UploadFile] = File(None),
+):
     """
-    Accepts a citizen complaint, runs it through Gemini classification
-    (Layer 2), stores it (Layer 3), and returns the classification result.
+    Accepts a citizen complaint from the React frontend (multipart/form-data),
+    runs it through Gemini classification (Layer 2), stores it (Layer 3),
+    and returns the classification result.
     """
-    if not payload.text or not payload.text.strip():
+    if not text or not text.strip():
         raise HTTPException(status_code=400, detail="Complaint text cannot be empty")
+
+    # Derive ward from coords if available, else default
+    ward = f"{lat:.4f},{lng:.4f}" if lat and lng else "Unknown"
 
     try:
         record = process_submission(
-            raw_text=payload.text,
-            ward=payload.ward,
-            input_type=payload.input_type,
-            citizen_id=payload.citizen_id,
+            raw_text=text.strip(),
+            ward=ward,
+            input_type="text",
         )
     except ValueError as e:
-        # Gemini returned invalid/unparseable JSON or failed validation
         log.error("Submission classification failed", error=str(e))
         raise HTTPException(status_code=502, detail=f"Classification failed: {e}")
     except RuntimeError as e:
-        # Gemini API error (network, quota, auth)
         log.error("Gemini API error", error=str(e))
         raise HTTPException(status_code=503, detail=f"AI service unavailable: {e}")
 
@@ -59,4 +61,3 @@ async def submit_complaint(payload: SubmitRequest):
         urgency=record["urgency"],
         summary=record["summary"],
     )
-
