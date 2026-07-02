@@ -1,16 +1,37 @@
 """
 BigQuery Client - Stores and retrieves submissions
-Mock mode: in-memory store. Production: google.cloud.bigquery
+Mock mode: JSON-file-backed store (survives server restarts).
+Production: google.cloud.bigquery
 """
 
+import json
+import os
 from typing import List, Dict, Any
 from datetime import datetime
 
+MOCK_STORE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".mock_store.json")
+
+
+def _load_store():
+    if os.path.exists(MOCK_STORE_PATH):
+        try:
+            with open(MOCK_STORE_PATH, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+
+def _save_store(store):
+    with open(MOCK_STORE_PATH, "w") as f:
+        json.dump(store, f, default=str)
+
 
 class BigQueryClient:
+    _store = _load_store()  # Class-level, loaded once from disk, persists across restarts
+
     def __init__(self, use_mock=True):
         self.use_mock = use_mock
-        self._store = []  # In-memory mock store
 
         if not use_mock:
             from google.cloud import bigquery
@@ -19,7 +40,8 @@ class BigQueryClient:
 
     def store_submissions(self, submissions: List[Dict[str, Any]]):
         if self.use_mock:
-            self._store.extend(submissions)
+            BigQueryClient._store.extend(submissions)
+            _save_store(BigQueryClient._store)
         else:
             rows = [self._to_bq_row(s) for s in submissions]
             errors = self.client.insert_rows_json(self.table_id, rows)
@@ -42,47 +64,7 @@ class BigQueryClient:
 
     def get_all(self) -> List[Dict]:
         if self.use_mock:
-            return self._store
+            return list(BigQueryClient._store)
         else:
             query = f"SELECT * FROM `{self.table_id}` ORDER BY timestamp DESC"
             return [dict(row) for row in self.client.query(query).result()]
-
-
-# ─── BigQuery Schema (run once to create table) ────────────────────────────────
-BQ_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS `your_project.peoples_priority.submissions` (
-  submission_id   STRING NOT NULL,
-  citizen_id      STRING,
-  input_type      STRING,        -- voice | text | photo | whatsapp | sms
-  raw_text        STRING,
-  translated_text STRING,
-  category        STRING,        -- Road | Water | School | Health | Agriculture | ...
-  urgency_level   STRING,        -- life_threatening | health_risk | daily_hardship | ...
-  urgency_score   FLOAT64,       -- 0-100
-  sentiment_score FLOAT64,       -- 0-10
-  ward            STRING,
-  lat             FLOAT64,
-  lng             FLOAT64,
-  timestamp       TIMESTAMP,
-  one_line_summary STRING,
-  gemini_reasoning STRING
-)
-PARTITION BY DATE(timestamp)
-CLUSTER BY category, ward;
-
--- Aggregation query used by scoring engine
-CREATE OR REPLACE VIEW `your_project.peoples_priority.cluster_stats` AS
-SELECT
-  category,
-  ward,
-  COUNT(*)                    AS submission_count,
-  AVG(urgency_score)          AS avg_urgency,
-  AVG(sentiment_score)        AS avg_sentiment,
-  COUNT(DISTINCT input_type)  AS channel_diversity,
-  COUNT(DISTINCT citizen_id)  AS unique_citizens,
-  ARRAY_AGG(translated_text LIMIT 3) AS sample_quotes
-FROM `your_project.peoples_priority.submissions`
-WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
-GROUP BY category, ward;
-"""
-
