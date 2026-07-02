@@ -3,22 +3,6 @@ import { useStats } from '../hooks/usePriorities';
 export default function StatsOverview() {
   const { data, isLoading } = useStats();
 
-<<<<<<< HEAD
-  if (isLoading || !data) return null;
-
-  return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
-      <StatCard label="Total Submissions" value={data.total_submissions} />
-      <StatCard label="Issue Clusters" value={data.total_clusters} />
-      <StatCard label="Top Category" value={data.top_category} />
-      <StatCard
-        label="Channels"
-        value={Object.entries(data.channels_breakdown || {})
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(', ')}
-        small
-      />
-=======
   if (isLoading || !data) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -49,18 +33,10 @@ export default function StatsOverview() {
           ))}
         </div>
       </div>
->>>>>>> Asmita
     </div>
   );
 }
 
-<<<<<<< HEAD
-function StatCard({ label, value, small }) {
-  return (
-    <div className="bg-white border rounded-xl p-4">
-      <div className="text-xs text-gray-400 mb-1">{label}</div>
-      <div className={small ? 'text-xs text-gray-700' : 'text-2xl font-bold text-gray-900'}>
-=======
 function StatCard({ label, value, accent }) {
   return (
     <div className="bg-white border border-ink/10 rounded-lg p-4">
@@ -70,7 +46,6 @@ function StatCard({ label, value, accent }) {
           accent ? 'text-2xl text-terracotta' : 'text-3xl text-ink'
         }`}
       >
->>>>>>> Asmita
         {value}
       </div>
     </div>

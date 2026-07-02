@@ -6,11 +6,6 @@ import {
   mockClusterDetail,
 } from './mockData';
 
-<<<<<<< HEAD
-// Set VITE_USE_MOCK=true in .env to develop the dashboard
-// independently of the backend (see backend/routes/dashboard.py).
-=======
->>>>>>> Asmita
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 const api = axios.create({
@@ -18,11 +13,6 @@ const api = axios.create({
   timeout: 10000,
 });
 
-<<<<<<< HEAD
-// Small helper to fake network latency in mock mode so loading
-// states are actually visible during development.
-=======
->>>>>>> Asmita
 const delay = (data, ms = 400) =>
   new Promise((resolve) => setTimeout(() => resolve(data), ms));
 
@@ -38,8 +28,6 @@ export const getClusterDetail = (id) =>
 export const getStats = () =>
   USE_MOCK ? delay(mockStats) : api.get('/stats').then((r) => r.data);
 
-<<<<<<< HEAD
-=======
 export const submitEntry = ({ text, language, lat, lng, photos, audio }) => {
   if (USE_MOCK) {
     console.log('[mock] submission:', { text, language, lat, lng, photos, audio });
@@ -61,5 +49,4 @@ export const submitEntry = ({ text, language, lat, lng, photos, audio }) => {
     .then((r) => r.data);
 };
 
->>>>>>> Asmita
 export default api;

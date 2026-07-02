@@ -1,29 +1,44 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-<<<<<<< HEAD
-import Dashboard from './pages/Dashboard';
-import ClusterDetail from './pages/ClusterDetail';
-=======
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import Landing from './pages/Landing';
+import Submit from './pages/Submit';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ClusterDetail from './pages/ClusterDetail';
-import Submit from './pages/Submit';
->>>>>>> Asmita
 
 function App() {
   return (
     <BrowserRouter>
-<<<<<<< HEAD
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/cluster/:clusterId" element={<ClusterDetail />} />
-=======
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/cluster/:clusterId" element={<ClusterDetail />} />
-        <Route path="/submit" element={<Submit />} />
->>>>>>> Asmita
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          {/* Public — no login needed */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/submit" element={<><Navbar /><Submit /></>} />
+          <Route path="/login" element={<Login />} />
+
+          {/* Protected — MP only */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cluster/:clusterId"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <ClusterDetail />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
